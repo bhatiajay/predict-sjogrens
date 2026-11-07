@@ -1,0 +1,29 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+
+      - name: Install exact locked dependencies (Python version from .python-version)
+        run: uv sync --locked
+
+      - name: Unit and app tests
+        run: uv run pytest
+
+      - name: Training script runs end to end (short settings)
+        run: uv run python train.py --repeats 1 --epochs 50
+
+      - name: Walkthrough notebook runs top to bottom
+        run: uv run jupyter nbconvert --to notebook --execute notebooks/walkthrough.ipynb --output-dir "$RUNNER_TEMP"
