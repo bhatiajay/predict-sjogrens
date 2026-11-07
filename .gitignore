@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Trained model artifacts (rebuild with `uv run python train.py`)
+models/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
