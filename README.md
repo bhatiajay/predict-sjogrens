@@ -54,8 +54,18 @@ uv run python train.py                   # evaluate (~1 min), then save models/m
 uv run flask --app app run --port 5001   # open http://127.0.0.1:5001
 ```
 
-On the home page, the **typical patient / typical control** links fill the form with each
-group's median values.
+Using the app:
+- **Learn about a gene.** Hover over a gene name to see what the gene does and why it's
+  studied in Sjögren's. Click or tap to keep the explanation open; Esc or a click
+  elsewhere closes it. Descriptions live in `sjogrens/genes.py`.
+- **See where a value sits.** Under each input, a bar spans the lowest to highest value in
+  the training data, with markers for the typical patient and typical control. Your value
+  moves along it as you type and turns orange outside that range.
+- **Try examples.** **Typical patient / Typical control** fill the form with each group's
+  median values.
+- **Read the result.** The score is shown on a 0–100% scale next to the scores for a
+  typical control and a typical patient. **Adjust these values** returns to the form
+  with your numbers still filled in.
 
 Port 5001 is used because macOS reserves 5000 for AirPlay Receiver.
 
@@ -103,6 +113,7 @@ flowchart TD
 │   ├── data.py             load and validate the dataset
 │   ├── model.py            build / train / score the network
 │   ├── evaluate.py         cross-validation and metrics
+│   ├── genes.py            plain-language gene descriptions for the app
 │   └── artifacts.py        save / load model + meta.json
 ├── templates/              HTML for the app
 ├── notebooks/walkthrough.ipynb

@@ -1,28 +1,57 @@
 {% extends "base.html" %}
+{% import "_gene.html" as ui with context %}
 {% block content %}
-<h1>Sjögren's Syndrome Expression Score</h1>
-<p class="muted">
-  Enter log2 expression intensities for each gene, on the same scale as the Illumina HumanHT-12 v4
-  data the model was trained on (values roughly 6–14).
-</p>
-<p class="examples">
-  Fill with:
-  <a href="/?example=patient">typical patient</a>
-  <a href="/?example=control">typical control</a>
-  <a href="/">clear</a>
-</p>
+<header class="page-header">
+  <h1>Sjögren's Syndrome Expression Score</h1>
+  <p class="lead">
+    Enter log2 expression intensities for each gene, on the same scale as the Illumina HumanHT-12 v4
+    data the model was trained on. Select a gene name to see what it does.
+  </p>
+</header>
 
-<form action="/predict" method="post" novalidate>
-  {% for gene in meta.genes %}
-  {% set lo, hi = meta.ranges[gene] %}
-  <div class="field">
-    <label for="{{ gene }}">{{ gene }} <span class="probe">{{ meta.probes[gene] }}</span></label>
-    <input id="{{ gene }}" name="{{ gene }}" type="text" inputmode="decimal" autocomplete="off"
-           value="{{ values.get(gene, '') }}" class="{{ 'invalid' if gene in errors }}">
-    {% if gene in errors %}<div class="error">{{ errors[gene] }}</div>{% endif %}
-    <div class="hint">Training range: {{ '%.2f'|format(lo) }} – {{ '%.2f'|format(hi) }}</div>
+<form class="panel" action="/predict" method="post" novalidate data-score-form>
+  <div class="panel-section toolbar">
+    <nav class="chips" aria-label="Fill the form with example values">
+      <span class="chips-label">Fill with</span>
+      <a class="chip" href="/?example=patient"{{ ' aria-current="true"' | safe if example == 'patient' }}>Typical patient</a>
+      <a class="chip" href="/?example=control"{{ ' aria-current="true"' | safe if example == 'control' }}>Typical control</a>
+      <a class="chip" href="/">Clear</a>
+    </nav>
+    {{ ui.legend() }}
   </div>
-  {% endfor %}
-  <button type="submit">Calculate score</button>
+
+  {% if errors %}
+  <div class="panel-section">
+    <p class="alert alert-error" role="alert">
+      {{ ui.icon("error") }}<span>Some values need fixing. Each gene needs a number, like 7.5.</span>
+    </p>
+  </div>
+  {% endif %}
+
+  <div class="gene-list">
+    {% for gene in meta.genes %}
+    {% set value = values.get(gene, '') %}
+    <div class="gene-row field">
+      <div class="gene-head">
+        {{ ui.gene_trigger(gene) }}
+        <label class="gene-name" for="{{ gene }}"><span class="visually-hidden">{{ gene }}, </span>{{ gene_info[gene].name }}</label>
+      </div>
+      <input id="{{ gene }}" name="{{ gene }}" type="text" inputmode="decimal" autocomplete="off" spellcheck="false"
+             value="{{ value }}" data-track="track-{{ gene }}"
+             aria-describedby="{% if gene in errors %}{{ gene }}-error {% endif %}track-{{ gene }}-desc"
+             {% if gene in errors %}aria-invalid="true"{% if gene == errors|first %} autofocus{% endif %}{% endif %}>
+      {% if gene in errors %}
+      <p class="field-error" id="{{ gene }}-error">{{ ui.icon("error") }}{{ errors[gene] }}</p>
+      {% endif %}
+      {{ ui.range_track(gene, value) }}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="panel-section">
+    <button class="button button-block" type="submit"><span data-label>Calculate score</span></button>
+  </div>
 </form>
+
+{{ ui.gene_popovers(meta.genes) }}
 {% endblock %}
