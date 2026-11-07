@@ -1,8 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Model not trained · Sjögren's Syndrome Expression Score{% endblock %}
+{% block styles %}
+    .command { margin: 1rem 0; padding: 0.75rem 1rem; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--border); overflow-x: auto; }
+{% endblock %}
 {% block content %}
-<h1>No trained model yet</h1>
-<p>The app couldn't find <code>models/model.keras</code>. Train it first (about a minute):</p>
-<pre><code>uv run python train.py</code></pre>
-<p>Then restart the app.</p>
+<header class="page-header">
+  <h1>No trained model yet</h1>
+  <p class="lead">The app couldn't find <code>models/model.keras</code>. Train it first; it takes about a minute.</p>
+</header>
+<div class="panel panel-section">
+  <pre class="command"><code>uv run python train.py</code></pre>
+  <p>Then restart the app.</p>
+</div>
 {% endblock %}

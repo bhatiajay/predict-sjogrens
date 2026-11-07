@@ -1,31 +1,107 @@
 {% extends "base.html" %}
+{% import "_gene.html" as ui with context %}
 {% block title %}Result · Sjögren's Syndrome Expression Score{% endblock %}
+{% block styles %}
+    .gauge { margin-top: 1.5rem; }
+    .gauge-row { display: grid; grid-template-columns: auto 1fr auto; align-items: start; gap: 0.75rem; }
+    .gauge-end { margin-top: 1.5rem; color: var(--text-2); font-size: 0.75rem; line-height: 1.125rem; font-variant-numeric: tabular-nums; }
+    .gauge-body { position: relative; padding: 1.75rem 0 2.5rem; }
+    .gauge-rail { position: relative; height: 10px; border-radius: 5px; background: var(--surface-3); }
+    .gauge-fill { position: absolute; inset: 0 auto 0 0; width: var(--pos); border-radius: 5px; background: var(--accent); }
+    .gauge-ref { position: absolute; left: var(--pos); top: -8px; width: 3px; height: 26px; margin-left: -1.5px; border-radius: 2px; }
+    .gauge-ref.control { background: var(--control); }
+    .gauge-ref.patient { background: var(--patient); }
+    .gauge-marker { position: absolute; left: var(--pos); top: 50%; width: 1.125rem; height: 1.125rem; transform: translate(-50%, -50%); border-radius: 50%; border: 3px solid var(--text); background: var(--surface); box-shadow: 0 1px 4px rgb(16 24 40 / 0.3); }
+    .gauge-label { position: absolute; left: var(--pos); white-space: nowrap; font-size: 0.8125rem; color: var(--text-2); font-variant-numeric: tabular-nums; transform: translateX(-50%); }
+    .gauge-label.start { transform: none; }
+    .gauge-label.end { transform: translateX(-100%); }
+    .gauge-label.above { top: 0; color: var(--text); font-weight: 600; }
+    .gauge-label.below { top: 3rem; }
+    .gauge-label.below.second { top: 4.25rem; }
+    .gauge-body.stacked { padding-bottom: 3.75rem; }
+    .gauge-label .dot { display: inline-block; width: 3px; height: 0.75rem; margin-right: 0.375rem; border-radius: 2px; vertical-align: -0.0625rem; }
+    .gauge-label .dot.control { background: var(--control); }
+    .gauge-label .dot.patient { background: var(--patient); }
+    .score-heading .num { font-weight: 800; }
+    .explain { margin-top: 0.25rem; color: var(--text-2); max-width: 65ch; }
+    .result-values .gene-row { grid-template-columns: minmax(0, 1fr) auto; }
+    .value-cell { font-size: 1.0625rem; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+{% endblock %}
+{% macro placement(pos) -%}{{ 'start' if pos < 12 else ('end' if pos > 88 else '') }}{%- endmacro %}
 {% block content %}
-<h1>Model score</h1>
-<div class="score" data-score="{{ '%.4f'|format(score) }}">{{ '%.1f'|format(score * 100) }}%</div>
-<div class="bar" aria-hidden="true"><span style="width: {{ '%.1f'|format(score * 100) }}%"></span></div>
+{% set pct = score * 100 %}
+{% set ref_c = reference.control * 100 %}
+{% set ref_p = reference.patient * 100 %}
+{% set close_refs = (ref_p - ref_c)|abs < 30 %}
 
-<p>
-  Higher means this expression profile looks more like the Sjögren's patients the model was trained on;
-  lower means it looks more like the healthy controls. This is a pattern-match score, not your chance of
-  having the disease. The training group was 82% patients, nothing like the general population.
-</p>
+<header class="page-header">
+  <h1 class="score-heading">This profile scores <span class="num" data-score="{{ '%.4f'|format(score) }}">{{ '%.1f'|format(pct) }}%</span></h1>
 
-{% if out_of_range %}
-<div class="warning">
-  <strong>Outside the training data:</strong>
-  {% for gene, value, lo, hi in out_of_range %}
-    {{ gene }} = {{ value }} (seen: {{ '%.2f'|format(lo) }}–{{ '%.2f'|format(hi) }}){{ "; " if not loop.last }}
-  {% endfor %}.
-  The model hasn't seen values like these, so treat this score with extra caution.
-</div>
-{% endif %}
+  <div class="gauge" role="img"
+       aria-label="Score {{ '%.1f'|format(pct) }} percent on a 0 to 100 scale. A typical control scores {{ '%.0f'|format(ref_c) }} percent and a typical patient {{ '%.0f'|format(ref_p) }} percent.">
+    <div class="gauge-row">
+      <span class="gauge-end">0%</span>
+      <div class="gauge-body{{ ' stacked' if close_refs }}">
+        <span class="gauge-label above {{ placement(pct) }}" style="--pos: {{ pct }}%">This sample</span>
+        <div class="gauge-rail">
+          <span class="gauge-fill" style="--pos: {{ pct }}%"></span>
+          <span class="gauge-ref control" style="--pos: {{ ref_c }}%"></span>
+          <span class="gauge-ref patient" style="--pos: {{ ref_p }}%"></span>
+          <span class="gauge-marker" style="--pos: {{ pct }}%"></span>
+        </div>
+        <span class="gauge-label below {{ placement(ref_c) }}" style="--pos: {{ ref_c }}%"><i class="dot control"></i>Typical control {{ '%.0f'|format(ref_c) }}%</span>
+        <span class="gauge-label below {{ placement(ref_p) }}{{ ' second' if close_refs }}" style="--pos: {{ ref_p }}%"><i class="dot patient"></i>Typical patient {{ '%.0f'|format(ref_p) }}%</span>
+      </div>
+      <span class="gauge-end">100%</span>
+    </div>
+  </div>
 
-<table>
-  {% for gene in meta.genes %}
-  <tr><td>{{ gene }}</td><td>{{ values[gene] }}</td></tr>
-  {% endfor %}
-</table>
+  <p class="explain">
+    Higher means this expression profile looks more like the Sjögren's patients the model was trained on;
+    lower means it looks more like the healthy controls. This is a pattern-match score, not your chance of
+    having the disease. The training group was 82% patients, nothing like the general population.
+  </p>
+</header>
 
-<a href="/">← Score another sample</a>
+<section class="panel result-values" aria-labelledby="values-heading">
+  <div class="panel-section toolbar">
+    <h2 id="values-heading">Your values</h2>
+    {{ ui.legend() }}
+  </div>
+
+  {% if out_of_range %}
+  <div class="panel-section">
+    <div class="alert alert-warn" role="note">
+      {{ ui.icon("warning") }}
+      <p>
+        <strong>Outside the training data:</strong>
+        {% for gene, value, lo, hi in out_of_range -%}
+          {{ gene }} = {{ value }} (seen: {{ '%.2f'|format(lo) }}–{{ '%.2f'|format(hi) }}){{ "; " if not loop.last }}
+        {%- endfor %}.
+        The model hasn't seen values like these, so treat this score with extra caution.
+      </p>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="gene-list">
+    {% for gene in meta.genes %}
+    <div class="gene-row">
+      <div class="gene-head">
+        {{ ui.gene_trigger(gene) }}
+        <span class="gene-name">{{ gene_info[gene].name }}</span>
+      </div>
+      <span class="value-cell">{{ values[gene] }}</span>
+      {{ ui.range_track(gene, values[gene]) }}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="panel-section actions">
+    <a class="button" href="{{ url_for('index', **values) }}">{{ ui.icon("back") }}Adjust these values</a>
+    <a class="link" href="/">Start over</a>
+  </div>
+</section>
+
+{{ ui.gene_popovers(meta.genes) }}
 {% endblock %}

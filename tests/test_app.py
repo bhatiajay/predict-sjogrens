@@ -92,3 +92,32 @@ def test_missing_model_shows_instructions(tmp_path):
     assert response.status_code == 503
     assert "uv run python train.py" in response.get_data(as_text=True)
     assert client.post("/predict", data={}).status_code == 503
+
+
+def test_each_gene_has_an_explanation_popover(client):
+    from sjogrens.genes import GENE_INFO, ncbi_url
+
+    html = client.get("/").get_data(as_text=True)
+    for gene in GENE_INFO.keys() & set(GENES):
+        assert f'id="about-{gene}"' in html  # the popover
+        assert f'data-gene-popover="about-{gene}"' in html  # the button that opens it
+        assert GENE_INFO[gene]["does"].split(".")[0] in html
+        assert ncbi_url(gene) in html
+
+
+def test_query_values_prefill_the_form(client):
+    html = client.get("/?MX1=12.5&IFI44=9").get_data(as_text=True)
+    assert 'value="12.5"' in html
+    assert 'value="9"' in html
+
+
+def test_result_page_links_back_with_values_and_shows_landmarks(client, meta):
+    html = client.post("/predict", data=meta["examples"]["patient"]).get_data(as_text=True)
+    assert "Adjust these values" in html
+    assert f'MX1={meta["examples"]["patient"]["MX1"]}' in html
+    assert "Typical control" in html and "Typical patient" in html
+
+
+def test_landmark_scores_order(model_dir):
+    reference = create_app(model_dir).jinja_env.globals["reference"]
+    assert 0 <= reference["control"] < reference["patient"] <= 1

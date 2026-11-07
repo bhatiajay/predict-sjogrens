@@ -1,0 +1,84 @@
+{# Shared pieces for the form and result pages. Import with: {% import "_gene.html" as ui with context %} #}
+
+{% macro icon(name) -%}
+<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+  {%- if name == "info" -%}
+  <circle cx="12" cy="12" r="9.25"/><path d="M12 16.5v-5"/><path d="M12 8h.01"/>
+  {%- elif name == "external" -%}
+  <path d="M14 4h6v6"/><path d="M10 14 20 4"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>
+  {%- elif name == "warning" -%}
+  <path d="M10.3 4.2 2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z"/><path d="M12 9.5v4"/><path d="M12 17h.01"/>
+  {%- elif name == "error" -%}
+  <circle cx="12" cy="12" r="9.25"/><path d="M12 7.5v5"/><path d="M12 16h.01"/>
+  {%- elif name == "back" -%}
+  <path d="M19 12H5"/><path d="m11 18-6-6 6-6"/>
+  {%- endif -%}
+</svg>
+{%- endmacro %}
+
+{# The gene symbol as a button. Hover previews the explanation; click/tap pins it. #}
+{% macro gene_trigger(gene) -%}
+<button type="button" class="gene-trigger" data-gene-popover="about-{{ gene }}" popovertarget="about-{{ gene }}"
+        aria-expanded="false" aria-label="{{ gene }}: what this gene is">
+  <span class="symbol">{{ gene }}</span>{{ icon("info") }}
+</button>
+{%- endmacro %}
+
+{% macro gene_popover(gene) -%}
+{% set info = gene_info[gene] %}
+<div id="about-{{ gene }}" class="gene-popover" popover="manual" role="dialog" tabindex="-1" aria-labelledby="about-{{ gene }}-title">
+  <p class="pop-title" id="about-{{ gene }}-title"><span class="pop-symbol">{{ gene }}</span> <span class="pop-name">{{ info.name }}</span></p>
+  <span class="tag">{{ info.group }}</span>
+  {% if info.aka %}<p class="pop-aka">{{ info.aka }}</p>{% endif %}
+  <dl class="pop-body">
+    <div><dt>What it does</dt><dd>{{ info.does }}</dd></div>
+    <div><dt>Why it's studied in Sjögren's</dt><dd>{{ info.sjogrens }}</dd></div>
+    <div>
+      <dt>Median in the training data</dt>
+      <dd class="pop-medians num">
+        <span><i class="swatch swatch-patient" aria-hidden="true"></i>Patients {{ '%.2f'|format(meta.examples.patient[gene]) }}</span>
+        <span><i class="swatch swatch-control" aria-hidden="true"></i>Controls {{ '%.2f'|format(meta.examples.control[gene]) }}</span>
+      </dd>
+    </div>
+  </dl>
+  <a class="link pop-link" href="{{ ncbi_url(gene) }}" target="_blank" rel="noopener noreferrer">
+    NCBI Gene entry{{ icon("external") }}<span class="visually-hidden"> (opens in a new tab)</span>
+  </a>
+</div>
+{%- endmacro %}
+
+{% macro gene_popovers(genes) -%}
+{% for gene in genes %}{{ gene_popover(gene) }}{% endfor %}
+{%- endmacro %}
+
+{# Where a value sits between the lowest and highest values seen in training,
+   next to the median patient and median control. #}
+{% macro range_track(gene, value) -%}
+{% set lo, hi = meta.ranges[gene] %}
+{% set pos = position(gene, value) %}
+{% set outside = pos is not none and not in_range(gene, value) %}
+<div class="track" id="track-{{ gene }}" data-min="{{ lo }}" data-max="{{ hi }}">
+  <div class="track-rail" aria-hidden="true">
+    <span class="tick tick-control" style="--pos: {{ position(gene, meta.examples.control[gene]) }}%"></span>
+    <span class="tick tick-patient" style="--pos: {{ position(gene, meta.examples.patient[gene]) }}%"></span>
+    <span class="marker{{ ' is-out' if outside }}" style="--pos: {{ pos if pos is not none else 0 }}%"{{ ' hidden' if pos is none }}></span>
+  </div>
+  <div class="track-scale">
+    <span aria-hidden="true">{{ '%.2f'|format(lo) }}</span>
+    <span class="track-note{{ ' is-shown' if outside }}" role="status">{{ icon("warning") }}<span data-note-text>{{ 'Outside training range' if outside }}</span></span>
+    <span aria-hidden="true">{{ '%.2f'|format(hi) }}</span>
+  </div>
+  <span class="visually-hidden" id="track-{{ gene }}-desc">
+    Training values range from {{ '%.2f'|format(lo) }} to {{ '%.2f'|format(hi) }}.
+    Median patient {{ '%.2f'|format(meta.examples.patient[gene]) }}, median control {{ '%.2f'|format(meta.examples.control[gene]) }}.
+  </span>
+</div>
+{%- endmacro %}
+
+{% macro legend() -%}
+<p class="legend">
+  <span><i class="swatch swatch-patient" aria-hidden="true"></i>Typical patient</span>
+  <span><i class="swatch swatch-control" aria-hidden="true"></i>Typical control</span>
+  <span><i class="swatch swatch-value" aria-hidden="true"></i>{{ caller() if caller else "Your value" }}</span>
+</p>
+{%- endmacro %}
