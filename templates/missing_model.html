@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Model not trained · Sjögren's Syndrome Expression Score{% endblock %}
+{% block content %}
+<h1>No trained model yet</h1>
+<p>The app couldn't find <code>models/model.keras</code>. Train it first (about a minute):</p>
+<pre><code>uv run python train.py</code></pre>
+<p>Then restart the app.</p>
+{% endblock %}

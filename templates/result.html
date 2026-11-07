@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Result · Sjögren's Syndrome Expression Score{% endblock %}
+{% block content %}
+<h1>Model score</h1>
+<div class="score" data-score="{{ '%.4f'|format(score) }}">{{ '%.1f'|format(score * 100) }}%</div>
+<div class="bar" aria-hidden="true"><span style="width: {{ '%.1f'|format(score * 100) }}%"></span></div>
+
+<p>
+  Higher means this expression profile looks more like the Sjögren's patients the model was trained on;
+  lower means it looks more like the healthy controls. This is a pattern-match score, not your chance of
+  having the disease. The training group was 82% patients, nothing like the general population.
+</p>
+
+{% if out_of_range %}
+<div class="warning">
+  <strong>Outside the training data:</strong>
+  {% for gene, value, lo, hi in out_of_range %}
+    {{ gene }} = {{ value }} (seen: {{ '%.2f'|format(lo) }}–{{ '%.2f'|format(hi) }}){{ "; " if not loop.last }}
+  {% endfor %}.
+  The model hasn't seen values like these, so treat this score with extra caution.
+</div>
+{% endif %}
+
+<table>
+  {% for gene in meta.genes %}
+  <tr><td>{{ gene }}</td><td>{{ values[gene] }}</td></tr>
+  {% endfor %}
+</table>
+
+<a href="/">← Score another sample</a>
+{% endblock %}

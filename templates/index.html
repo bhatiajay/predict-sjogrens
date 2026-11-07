@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Sjögren's Syndrome Expression Score</h1>
+<p class="muted">
+  Enter log2 expression intensities for each gene, on the same scale as the Illumina HumanHT-12 v4
+  data the model was trained on (values roughly 6–14).
+</p>
+<p class="examples">
+  Fill with:
+  <a href="/?example=patient">typical patient</a>
+  <a href="/?example=control">typical control</a>
+  <a href="/">clear</a>
+</p>
+
+<form action="/predict" method="post" novalidate>
+  {% for gene in meta.genes %}
+  {% set lo, hi = meta.ranges[gene] %}
+  <div class="field">
+    <label for="{{ gene }}">{{ gene }} <span class="probe">{{ meta.probes[gene] }}</span></label>
+    <input id="{{ gene }}" name="{{ gene }}" type="text" inputmode="decimal" autocomplete="off"
+           value="{{ values.get(gene, '') }}" class="{{ 'invalid' if gene in errors }}">
+    {% if gene in errors %}<div class="error">{{ errors[gene] }}</div>{% endif %}
+    <div class="hint">Training range: {{ '%.2f'|format(lo) }} – {{ '%.2f'|format(hi) }}</div>
+  </div>
+  {% endfor %}
+  <button type="submit">Calculate score</button>
+</form>
+{% endblock %}
